@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DBMS Quiz</title>
+<style>
+  :root{
+    --ink:#1b1f23;
+    --paper:#f6f4ee;
+    --card:#ffffff;
+    --line:#e3ddd0;
+    --accent:#3457d5;
+    --accent-ink:#1c2c66;
+    --good:#1f8a55;
+    --good-bg:#e7f5ec;
+    --bad:#c23b3b;
+    --bad-bg:#fbeaea;
+    --muted:#767268;
+    font-family: 'IBM Plex Mono', 'Courier New', monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family: 'Georgia', 'Times New Roman', serif;
+    display:flex;
+    justify-content:center;
+    padding:28px 16px 60px;
+  }
+  .wrap{width:100%;max-width:720px;}
+  .masthead{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    border-bottom:3px solid var(--ink);
+    padding-bottom:10px;
+    margin-bottom:22px;
+  }
+  .masthead h1{
+    font-size:1.5rem;
+    margin:0;
+    letter-spacing:0.02em;
+    font-weight:700;
+  }
+  .masthead .tag{
+    font-family:'IBM Plex Mono','Courier New',monospace;
+    font-size:0.72rem;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+  }
+  .progress-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom:18px;
+    font-family:'IBM Plex Mono','Courier New',monospace;
+    font-size:0.78rem;
+    color:var(--muted);
+  }
+  .progress-track{
+    flex:1;
+    height:6px;
+    background:var(--line);
+    border-radius:4px;
+    overflow:hidden;
+  }
+  .progress-fill{
+    height:100%;
+    background:var(--accent);
+    width:0%;
+    transition:width .25s ease;
+  }
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:26px 24px;
+    box-shadow:0 1px 0 var(--line);
+  }
+  .q-number{
+    font-family:'IBM Plex Mono','Courier New',monospace;
+    font-size:0.75rem;
+    color:var(--accent-ink);
+    letter-spacing:0.06em;
+    margin-bottom:8px;
+    text-transform:uppercase;
+  }
+  .q-text{
+    font-size:1.12rem;
+    line-height:1.5;
+    margin:0 0 20px;
+  }
+  .options{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .option{
+    display:flex;
+    align-items:flex-start;
+    gap:12px;
+    border:1px solid var(--line);
+    border-radius:5px;
+    padding:12px 14px;
+    cursor:pointer;
+    background:#fdfcf9;
+    transition:border-color .15s, background .15s;
+    font-size:0.98rem;
+    line-height:1.45;
+  }
+  .option:hover{border-color:var(--accent);}
+  .option.selected{
+    border-color:var(--accent);
+    background:#eef1fc;
+  }
+  .option.correct{
+    border-color:var(--good);
+    background:var(--good-bg);
+  }
+  .option.incorrect{
+    border-color:var(--bad);
+    background:var(--bad-bg);
+  }
+  .option .letter{
+    font-family:'IBM Plex Mono','Courier New',monospace;
+    font-weight:700;
+    font-size:0.82rem;
+    color:var(--muted);
+    min-width:18px;
+  }
+  .option.correct .letter{color:var(--good);}
+  .option.incorrect .letter{color:var(--bad);}
+  .feedback{
+    margin-top:14px;
+    font-family:'IBM Plex Mono','Courier New',monospace;
+    font-size:0.8rem;
+    padding:8px 10px;
+    border-radius:4px;
+  }
+  .feedback.good{background:var(--good-bg);color:var(--good);}
+  .feedback.bad{background:var(--bad-bg);color:var(--bad);}
+  .nav-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:22px;
+  }
+  .score-live{
+    font-family:'IBM Plex Mono','Courier New',monospace;
+    font-size:0.78rem;
+    color:var(--muted);
+  }
+  button.next-btn{
+    font-family:'IBM Plex Mono','Courier New',monospace;
+    background:var(--ink);
+    color:var(--paper);
+    border:none;
+    padding:11px 20px;
+    border-radius:4px;
+    font-size:0.85rem;
+    cursor:pointer;
+    letter-spacing:0.02em;
+    transition:opacity .15s;
+  }
+  button.next-btn:disabled{
+    opacity:0.35;
+    cursor:not-allowed;
+  }
+  button.next-btn:hover:not(:disabled){opacity:0.85;}
+
+  /* results screen */
+  .results{
+    text-align:center;
+    padding:40px 24px;
+  }
+  .results .big-score{
+    font-size:3.4rem;
+    font-weight:700;
+    margin:6px 0 2px;
+  }
+  .results .out-of{
+    font-family:'IBM Plex Mono','Courier New',monospace;
+    color:var(--muted);
+    font-size:0.85rem;
+    margin-bottom:22px;
+  }
+  .results .pct{
+    display:inline-block;
+    font-family:'IBM Plex Mono','Courier New',monospace;
+    font-size:0.85rem;
+    padding:5px 12px;
+    border-radius:20px;
+    background:var(--accent);
+    color:#fff;
+    margin-bottom:26px;
+  }
+  .results .msg{
+    font-size:1.02rem;
+    margin-bottom:26px;
+    color:var(--ink);
+  }
+  .results .btn-row{
+    display:flex;
+    gap:10px;
+    justify-content:center;
+  }
+  .results button{
+    font-family:'IBM Plex Mono','Courier New',monospace;
+    padding:11px 18px;
+    border-radius:4px;
+    font-size:0.82rem;
+    cursor:pointer;
+    border:1px solid var(--ink);
+  }
+  .btn-primary{background:var(--ink);color:var(--paper);}
+  .btn-secondary{background:transparent;color:var(--ink);}
+
+  .review-list{
+    text-align:left;
+    margin-top:30px;
+    border-top:1px solid var(--line);
+    padding-top:20px;
+  }
+  .review-item{
+    font-size:0.88rem;
+    padding:8px 0;
+    border-bottom:1px solid var(--line);
+    display:flex;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .review-item .rq{color:var(--muted);font-family:'IBM Plex Mono','Courier New',monospace;font-size:0.78rem;}
+  .tick{color:var(--good);font-weight:700;}
+  .cross{color:var(--bad);font-weight:700;}
+
+  @media (max-width:520px){
+    .card{padding:20px 16px;}
+    .masthead h1{font-size:1.2rem;}
+    .q-text{font-size:1rem;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="masthead">
+    <h1>DBMS Quiz</h1>
+    <div class="tag" id="scoreTag">Score 0 / 0</div>
+  </div>
+
+  <div id="quizArea">
+    <div class="progress-row">
+      <span id="progressLabel">Question 1 of 1</span>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    </div>
+    <div class="card" id="card"></div>
+    <div class="nav-row">
+      <span class="score-live" id="liveScore">+1 correct · 0 wrong</span>
+      <button class="next-btn" id="nextBtn" disabled>Next →</button>
+    </div>
+  </div>
+
+  <div id="resultsArea" style="display:none;"></div>
+</div>
+
+<script>
+const QUESTIONS = [
+{q:"Consider the relation Student(RegNo, Name, Address, Phone, ClassID) with FDs: RegNo→{Name,Address}; {Address,Phone}→ClassID; Name→Phone; ClassID→RegNo. Which of the following are possible sets of candidate keys of Student?",
+ options:["{RegNo}, {Phone}","{RegNo}, {ClassID}, {Address,Phone}","{RegNo}, {ClassID}, {Phone}","{RegNo}, {Address}, {Phone}"], correct:1},
+{q:"Consider the relation Weather(Country, City, DayNo, TimeHr, ProbRain, ProbWind, ProbTemp). {Country,City,DayNo} uniquely identifies {ProbRain,ProbWind,ProbTemp}. TimeHr is identified by DayNo. ProbWind is determined by {ProbRain,ProbTemp}. If Weather is normalized to 2NF, which attribute will be present in both decompositions?",
+ options:["Country","TimeHr","ProbRain","DayNo"], correct:3},
+{q:"Consider ArtExhibition(academy, style, paintingsSold, NetAmount, Artist, ExhibitionLoc) with FDs: {academy,paintingsSold}→{Artist,style}; Artist→{style,ExhibitionLoc,NetAmount}; {Artist,ExhibitionLoc}→style. Which FD, if added, makes paintingsSold the only candidate key of ArtExhibition?",
+ options:["academy → paintingsSold","academy → {NetAmount,Artist}","paintingsSold → ExhibitionLoc","paintingsSold → academy"], correct:3},
+{q:"Consider Construction(Company, Material, Type, Cost) with FD1: Company→Material, FD2: Material→Type, FD3: Type→Cost. It is decomposed into Construction1(Company,Type,Cost) and Construction2(Material,Type). Which of the following is true about the decomposition?",
+ options:["Both lossless and dependency preserving.","Neither lossless nor dependency preserving.","Lossless but not dependency preserving","Lossy but dependency preserving"], correct:1},
+{q:"Consider NewsPaper(PaperName, ArticleNo, Reporter, Editor) with FD1: {PaperName,ArticleNo}→Reporter, FD2: {ArticleNo,Reporter}→Editor. Which of the following decompositions allow the relations to be in BCNF?",
+ options:["NewsPaper is already in BCNF","News1(Editor), News2(PaperName,ArticleNo,Reporter)","News1(ArticleNo,Reporter,Editor), News2(PaperName,ArticleNo,Reporter)","News1(ArticleNo,Editor), News2(PaperName,Reporter)"], correct:2},
+{q:"A RAID-4 (block-level striping, dedicated parity disk) system has 6 data disks and 1 parity disk. If RAID-5 (distributed parity) is used instead, the number of disks on which data is stored is:",
+ options:["7","8","13","14"], correct:0},
+{q:"A file is stored on disk in 2048 blocks. External sorting is performed in main memory with buffer size = 9 blocks. The number of block accesses during the sort phase is:",
+ options:["18","228","2048","4096"], correct:3},
+{q:"Same file (2048 blocks, buffer size = 9 blocks). The number of block accesses during the merge phase is:",
+ options:["228","8192","12288","16384"], correct:2},
+{q:"Two data files R and S with b1 and b2 blocks are stored on two disks (half the blocks on each disk) for parallel access. A nested loop join is performed with m memory buffers (m odd): 2 buffers for the inner file (one block from each disk), 1 for the result, and the rest divided equally for the outer file from both disks. The number of times all blocks of the inner file are accessed is:",
+ options:["ceil( b1 / (m − 3) )","ceil( b1 / (2 × (m − 3)) )","ceil( b1 / (4 × (m − 3)) )","ceil( b1 / (2 × (m − 2)) )"], correct:0},
+{q:"A multi-level index is to be built on key field X of an unordered disk file. Number of records = 13,10,720; record length = 200 bytes; size of X = 13 bytes; size of record pointer = 7 bytes; block size = 2048 bytes (block pointer size = record pointer size). What are the blocking factors for the data file and the index file, respectively?",
+ options:["11, 101","10, 103","11, 103","10, 102"], correct:3},
+{q:"Same scenario as above (multi-level index on unordered file). What are the number of blocks in the first-level and second-level index files, respectively?",
+ options:["1,31,072  , 1286","13,111 , 126","13,110 , 125","12,851 , 126"], correct:3},
+{q:"A hard disk has seek time 12ms and rotational delay 3ms. The read/write head is positioned on block 0 of track 20. The maximum time taken for the head to move to block 10 on the same track is:",
+ options:["3ms","12ms","15ms","30ms"], correct:0},
+{q:"A Cricket Tournament DB has: disk block size = 2 KB (whole records only), data transfer rate = 64000 bytes/sec, seek time = 24ms. Player record size = 128 bytes, disk rotates at 6000 rpm. Approximately how much time is required to know the total runs scored by a player?",
+ options:["37 ms","56 ms","61 ms","66 ms"], correct:2},
+{q:"A 256-gigabyte flash storage system has a page size of 2048 bytes. The flash translation table is stored as an array and 1 gigabyte of space is required to store the table. What is the size of the address of a page?",
+ options:["64 bits","32 bits","64 Bytes","32 Bytes"], correct:0},
+{q:"An airplane traffic control system tracks airplanes (id, name, model code), airplane models (code, manufacturer), and airports (code, name, city, state), with landing eligibility decided by model. What are the major entities to be modeled?",
+ options:["airport, airplane","airport, airplane, airplane model","airport, airplane, manufacturer","airplane, airplane model, airplane city"], correct:1},
+{q:"L1 cache has a capacity of 64 KB, and L2 cache has a capacity of 512 KB. If the block size is 64 bytes in both caches, the number of cache blocks is:",
+ options:["L1: 1024, L2: 8192","L1: 8192, L2: 1024","L1: 1024, L2: 1024","L1: 8192, L2: 8192"], correct:0},
+{q:"A first-level index occupies 1000 blocks. Each second-level index block can store 100 index entries. The number of second-level index blocks required is:",
+ options:["10","100","1000","10000"], correct:0},
+{q:"A file contains 20,000 fixed-length records, each 100 bytes long. The disk block size is 1000 bytes, and records do not span blocks. The minimum number of data blocks required is:",
+ options:["2000","1000","2200","2500"], correct:0},
+{q:"A primary index contains 50,000 entries. Each index entry occupies 20 bytes. The block size is 1000 bytes. How many blocks are required for the first-level index?",
+ options:["1000","500","50","2500"], correct:0},
+{q:"S1: The following are all examples of trivial FDs — Uid→Uid, {DeptId,DeptName}→DeptId, {StudId,MobileNum}→MobileNum, {LoanNum,AccountNum}→{LoanNum,AccountNum}. S2: The following are all examples of non-trivial FDs — EmpId→EmpName, EmpId→EmpAddress, {StudName,StudDob,StudMobileNum}→{StudMobileNum,StudAddress}. Choose the correct option:",
+ options:["S1: True; S2: False","S1: True; S2: True","S1: False; S2: True","S1: False; S2: False"], correct:1},
+{q:"If F = { EmpName → EmpExperience, {EmpPost,EmpExperience} → EmpSalary }, then F entails which of the following?",
+ options:["EmpPost → EmpSalary","EmpName → EmpSalary","{EmpPost,EmpName} → EmpSalary","EmpExperience → EmpSalary"], correct:2},
+{q:"Consider a relational scheme R and a set of FDs F on it. S1: Lossless, dependency-preserving decomposition of R into 3NF relations wrt F is always possible. S2: Lossless, dependency-preserving decomposition of R into BCNF relations wrt F is always possible.",
+ options:["S1: True, S2: True","S1: True, S2: False","S1: False, S2: True","S1: False, S2: False"], correct:1},
+{q:"For relation R(A,B,C,D,E,F,G,H,I), S = {AD→G, A→F, H→B, FB→D, D→C, I→AH}. Which of the following represents I⁺ (closure of I)?",
+ options:["{I,A,H}","{I,A,H,F}","{I,A,H,F,B}","{I,A,H,F,B,C,D,G}"], correct:3},
+{q:"For relation R′(A,B,C,D,E,F,G,H,I), S′ = {AD→G, A→F, H→B, FB→E, D→C, I→AH}. Which of the following represents I⁺ (closure of I)?",
+ options:["{I,A,H}","{I,A,H,F,B}","{I,A,H,F,B,C,D,G}","{I,A,H,F,B,E}"], correct:3},
+{q:"S1: Armstrong axioms allow us to compute all elements of F⁺ for any given F. S2: Armstrong axioms may sometimes generate an incorrect functional dependency. Choose the correct option:",
+ options:["S1 is true, S2 is true","S1 is false, S2 is true","S1 is false, S2 is false","S1 is true, S2 is false"], correct:3},
+{q:"Consider relation R(A,B,C,D,E,F,G) with FDs {AB→CD, AF→D, DE→F, C→G, F→E, G→A}. Find the closure of {C,F}:",
+ options:["{C,F}","{C,F,G,E}","{C,F,G,E,A}","{C,F,G,E,A,D}"], correct:3},
+{q:"Consider relation R(A,B,C,D,E,F) with FDs {AB→C, C→D, B→E, DE→F, F→AB}. Choose the incorrect option:",
+ options:["AB is a candidate key of R","F is a candidate key of R","BC is a candidate key of R","CD is a candidate key of R"], correct:3},
+{q:"Consider relation R(part_no, part_description, part_price, supplier_id, supplier_address) with FDs: part_no→part_description; supplier_id→supplier_address; {part_no,supplier_id}→part_price. Find the candidate key of relation R:",
+ options:["part_no","supplier_id","{supplier_id, part_no}","None of the above"], correct:2},
+{q:"Consider relation R(A,B,C,D,E,F,G) with FD set F = {B→ACD, DE→F, F→D, E→FGB, BCG→CE, EG→CD}. Let F′ be a minimal cover of F. Find the incorrect statement about F′:",
+ options:["F′ contains F→D","F′ does not contain DE→F","F′ does not contain EG→CD","F′ does not contain BG→E"], correct:3},
+{q:"In relation Placement: JobID→Company, {Position,Company}→Salary. According to which of the following rules does {JobID,Position}→Salary hold?",
+ options:["Decomposition","Augmentation","Transitivity","Pseudo-transitivity"], correct:3},
+{q:"A weak entity is uniquely identified using:",
+ options:["Primary Key","Foreign Key","Partial Key with Identifying Relationship","Candidate Key"], correct:2},
+{q:"A relationship WORKS_FOR exists between EMPLOYEE and DEPARTMENT. If every employee must work for exactly one department, while a department may have zero or more employees, the cardinality and participation are:",
+ options:["1:1, total participation of both entities","1:N, total participation of EMPLOYEE and partial participation of DEPARTMENT","N:M, partial participation of both entities","N:1, total participation of DEPARTMENT and partial participation of EMPLOYEE"], correct:1},
+{q:"A relationship SUPERVISES connects an EMPLOYEE entity set to itself. This is an example of:",
+ options:["Binary relationship","Ternary relationship","Recursive relationship","Weak relationship"], correct:2},
+{q:"Consider the relationship STUDENT–ENROLLS–COURSE. If a student can enroll in multiple courses and a course can have multiple students, the relationship is:",
+ options:["One-to-one","One-to-many","Many-to-one","Many-to-many"], correct:3},
+{q:"Consider STUDENT(SID,Name,Dept) and ENROLLMENT(SID,CID,Grade). Which constraint ensures that every value of ENROLLMENT.SID refers to an existing student?",
+ options:["Domain constraint","Key constraint","Entity integrity constraint","Referential integrity constraint"], correct:3},
+{q:"Consider the relations R(A,B) = {(1,2),(2,3)} and S(B,C) = {(2,4),(3,5)}. What is the result of the natural join on the common attribute B?",
+ options:["{(1,2),(2,3)}","{(2,4),(3,5)}","{(1,2,4),(2,3,5)}","{(1,2,4),(2,3,5),(2,4,3)}"], correct:2},
+{q:"Let R(A,B,C) and S(B,D) be two relations. Which relational algebra operation produces all combinations of tuples from R and S?",
+ options:["Union","Natural Join","Cartesian Product","Intersection"], correct:2},
+{q:"Consider the TRC query: {t | t∈STUDENT ∧ t.Dept='CSE'}. This query retrieves:",
+ options:["All students whose department is not CSE","All attributes of students belonging to CSE","Only the department names of CSE students","All courses offered by the CSE department"], correct:1},
+{q:"Consider the TRC query: {e | e∈EMPLOYEE ∧ ∃d (d∈DEPARTMENT ∧ d.DID=e.DID ∧ d.Name='Sales')}. The query returns:",
+ options:["Departments that have no employees","Employees working in the Sales department","All employees except those in Sales","Employees who manage the Sales department"], correct:1},
+{q:"Consider the query: SELECT Dept, AVG(Salary) FROM EMPLOYEE WHERE Salary > 30000 GROUP BY Dept; The WHERE clause is applied:",
+ options:["After grouping and aggregation","Before grouping and aggregation","Only after the HAVING clause","After the result is sorted"], correct:1},
+{q:"Consider the query: SELECT E.Name FROM EMPLOYEE E WHERE E.Salary > (SELECT AVG(Salary) FROM EMPLOYEE); This query retrieves:",
+ options:["Employees whose salary is equal to the average salary","Employees whose salary is greater than the average salary of all employees","Employees with the maximum salary only","The average salary of each employee"], correct:1},
+{q:"Consider EMPLOYEE(EID,Name,DID) and DEPARTMENT(DID,DName). Which SQL query correctly retrieves employee names along with their department names?",
+ options:["SELECT E.Name, D.DName FROM EMPLOYEE E, DEPARTMENT D WHERE E.DID = D.DID;","SELECT E.Name, D.DName FROM EMPLOYEE E WHERE E.DID = D.DID;","SELECT E.Name, D.DName FROM EMPLOYEE E JOIN DEPARTMENT D;","SELECT E.Name, D.DName FROM EMPLOYEE E WHERE E.DID <> D.DID;"], correct:0},
+{q:"Which of the following SQL statements correctly inserts a new tuple into a relation?",
+ options:["ADD INTO STUDENT VALUES (...);","INSERT STUDENT VALUES (...);","INSERT INTO STUDENT VALUES (...);","UPDATE INTO STUDENT VALUES (...);"], correct:2},
+{q:"Consider the relationship WORKS_FOR between EMPLOYEE and DEPARTMENT. If every employee must work for exactly one department, while a department may have zero or more employees, the participation constraints are:",
+ options:["Total participation of both EMPLOYEE and DEPARTMENT","Partial participation of both EMPLOYEE and DEPARTMENT","Total participation of EMPLOYEE and partial participation of DEPARTMENT","Partial participation of EMPLOYEE and total participation of DEPARTMENT"], correct:2},
+{q:"Suppose an entity EMPLOYEE has a composite attribute ADDRESS, consisting of Street, City, and PIN. The attribute ADDRESS is:",
+ options:["A multivalued attribute","A derived attribute","A composite attribute","A key attribute"], correct:2},
+{q:"Consider the expression: π(Name,Dept) ( σ(Salary>50000) (EMPLOYEE) ). The operation first:",
+ options:["Projects Name and Dept, then selects Salary > 50000","Selects employees with Salary > 50000, then projects Name and Dept","Joins Name and Dept with Salary","Performs a Cartesian product"], correct:1},
+{q:"Given Employee(EmpID,EmpName,Salary,Age,Address,Department,HireDate), which TRC query retrieves employee id where salary > ₹60,000, age < 40, department is 'IT' or 'Marketing', and hire date is after Jan 1, 2020?",
+ options:["{ t.EmpID | Employee(t) ∧ t.Salary>60000 ∧ t.Age<40 ∧ (t.Department=\"IT\" ∨ t.Department=\"Marketing\") ∧ t.HireDate>'01/01/2020'}","{ t.EmpID | Employee(t) ∧ t.Salary>60000 ∨ t.Age<40 ∨ (t.Department=\"IT\" ∧ t.Department=\"Marketing\") ∨ t.HireDate>'01/01/2020'}","{ t.EmpID | Employee(t) ∧ (t.Salary>60000 ∧ t.Age<40) ∨ (t.Department=\"IT\" ∧ t.Department=\"Marketing\") ∧ t.HireDate>'01/01/2020'}","{ t.EmpID | Employee(t) ∧ (t.Salary>60000 ∨ t.Age<40) ∧ (t.Department=\"IT\" ∨ t.Department=\"Marketing\") ∧ t.HireDate>'01/01/2020'}"], correct:0},
+{q:"S1: Each record of the referencing relation can relate to at most one record of the referenced relation. S2: Each record of the referenced relation can relate to at most one record of the referencing relation. Choose the correct option:",
+ options:["S1 is true, S2 is true","S1 is false, S2 is true","S1 is false, S2 is false","S1 is true, S2 is false"], correct:3},
+{q:"Which of the following statements is TRUE?",
+ options:["A key for a relation can be figured out just by looking at the instance data.","A relation has exactly one key.","It is possible that a relation has no key.","A key for a relation can only be determined from the meaning of its attributes."], correct:3},
+{q:"If X = set of all primary keys, Y = set of all candidate keys, Z = set of all super keys of a relational DB, which of the following is TRUE?",
+ options:["X⊆Z⊆Y","Z⊆X⊆Y","X⊆Y⊆Z","Y⊆X⊆Z"], correct:2},
+{q:"Consider the query to retrieve the most senior professor (by startYear): SELECT p1.name FROM professor p1 WHERE p1.startYear ____ (SELECT p2.startYear FROM professor p2). Which is the correct filler for the blank?",
+ options:["< ALL","<= ALL","<= ANY","IN"], correct:1},
+{q:"SELECT rollNo as identifier FROM student UNION SELECT empId as identifier FROM professor. Which of the following statements is correct regarding the above query?",
+ options:["The query executes only if rollNo of student and empId of professor have the same data types","The query executes in all cases (irrespective of the data types of rollNo and empId)","The query does not execute at all","None of the above"], correct:0},
+{q:"Consider two instances of relations R1(A,B) and R2(C,D) with 10 and 8 rows, respectively. What is the least possible number of tuples in the result of: SELECT * FROM R1 FULL OUTER JOIN R2 ON R1.A = R2.C ?",
+ options:["0","18","8","10"], correct:3},
+{q:"Which of the following queries would select the courses with at least 10 'Z' grades in some offering of the course?",
+ options:["SELECT courseId FROM enrollment WHERE grade='Z' GROUP BY courseId HAVING count(rollNo)>=10","SELECT courseId FROM enrollment WHERE grade='Z' GROUP BY courseId, sem, year HAVING count(rollNo)>=10","SELECT courseId FROM enrollment WHERE grade='Z' AND count(rollNo)>=10 GROUP BY courseId","SELECT courseId FROM enrollment WHERE grade='Z' AND count(rollNo)>=10 GROUP BY courseId, sem, year"], correct:1},
+{q:"Which one of the following queries would find the teacher(s) who taught CS1100 the highest number of times?",
+ options:["CREATE VIEW EmpCount AS SELECT empId, count(*) AS cnt FROM teaching WHERE courseId='CS1100' GROUP BY empId; SELECT empId FROM EmpCount WHERE cnt = (SELECT MAX(cnt) from EmpCount);","(malformed / syntactically broken query)","SELECT empId, max(count(*)) AS cnt FROM teaching WHERE courseId='CS1100' GROUP BY empId","SELECT empId FROM teaching WHERE courseId='CS1100' GROUP BY empId HAVING COUNT(*) = (SELECT max(count(*)) FROM teaching WHERE courseId='CS1100')"], correct:0},
+{q:"In which of the following SQL clauses of a main query can a sub-query be made use of? (i) FROM (ii) WHERE (iii) HAVING",
+ options:["only (ii)","only (iii)","only (ii) and (iii)","all (i), (ii) and (iii)"], correct:3},
+{q:"Which normal form removes partial dependency on a composite key?",
+ options:["1NF","2NF","3NF","BCNF"], correct:1},
+{q:"Which JOIN returns all rows from both tables, matching where possible and filling NULLs otherwise?",
+ options:["INNER JOIN","LEFT OUTER JOIN","RIGHT OUTER JOIN","FULL OUTER JOIN"], correct:3},
+{q:"If R has 100 tuples and S has 50 tuples, the maximum tuples in R × S are:",
+ options:["100","150","500","5000"], correct:3},
+{q:"Which SQL clause is evaluated immediately after GROUP BY?",
+ options:["WHERE","HAVING","FROM","ORDER BY"], correct:1},
+{q:"Which relational algebra operator is equivalent to SQL SELECT DISTINCT?",
+ options:["Selection (σ)","Projection (π)","Join (⋈)","Difference (−)"], correct:1},
+{q:"Which ACID property ensures committed changes survive system failures?",
+ options:["Atomicity","Consistency","Isolation","Durability"], correct:3},
+{q:"Which concurrency problem occurs when one transaction overwrites another transaction's update?",
+ options:["Dirty Read","Lost Update","Phantom Read","Non-repeatable Read"], correct:1},
+{q:"Given FDs {A→B, B→C, C→A}, which attribute set is a candidate key?",
+ options:["A","B","C","All of the above"], correct:3},
+{q:"Consider relation R(A,B,C,D) with FDs {A→B, B→C, C→D}. Which is a candidate key?",
+ options:["A","B","C","D"], correct:0},
+{q:"Consider two files R and S with b1 and b2 blocks, too large to fit in main memory. The equi-join R⋈R.A=S.B S is performed using the partition-hash join method with M blocks of memory available for the partition phase. The number of block accesses in the partition phase is:",
+ options:["2 (b1 + b2 + M)","b1 + b2 + 2M","2 (b1 + b2)","b1 + b2"], correct:2},
+{q:"Same partition-hash join scenario: the partitions of R and S are stored in 10000 and 1000 blocks, respectively. To compute the join result of a particular partition file of R, the number of blocks of S accessed in the probe phase is (ignoring write cost):",
+ options:["2000 × b2","1000 × b2","11000","1000"], correct:3},
+{q:"Two files R and S have 9000 and 1000 blocks respectively; R is already sorted on A. The equi-join R.A=S.B is performed using sort-merge join. Main memory can fit 11 blocks as buffer space for external sorting. The number of block accesses required to perform the join (excluding cost of writing results) is:",
+ options:["16000","64000","18000","10000"], correct:0},
+{q:"Which of the following SQL operators isn't commutative?",
+ options:["inner join","full outer join","left outer join","intersect"], correct:2},
+{q:"Acyclicity of the precedence graph of a schedule gives only a necessary condition, but not a sufficient condition, to test conflict serializability. (True = 1, False = 0)",
+ options:["0 (False)","1 (True)"], correct:0},
+{q:"There exists a schedule that is view serializable but not conflict serializable. (True = 1, False = 0)",
+ options:["1 (True)","0 (False)"], correct:0},
+{q:"A sequence of log records written by transactions T and U are found on the log upon system restart after a crash. Assuming the recovery manager uses the UNDO logging method, the value of B on disk immediately after restart, but before the recovery manager is activated, is:",
+ options:["10","can not be determined","40","20"], correct:1},
+{q:"In a database system, it's estimated that, on average, the number of committed transactions is almost 5 times the number of uncommitted transactions in the log at restart after a crash. In which logging mechanism does the recovery manager attend to the least number of transactions after being given control?",
+ options:["Any of the Above","UNDO","UNDO-REDO","REDO"], correct:1},
+{q:"Match: {1: UNDO; 2: REDO; 3: UNDO-REDO} with {p: Ignore committed transactions; q: Consider committed transactions; r: Ignore committed and incomplete transactions; s: Consider committed and incomplete transactions; t: Write ahead log}. Identify the correct matching:",
+ options:["1--p; 2--q; 3--r","1--p; 2--t; 3--s","1--p; 2--q; 3--t","1--t; 2--q; 3--s"], correct:1},
+{q:"If all transactions follow the 2PL protocol, the transaction that issues the first lock request in the schedule must also issue the first unlock request. (True = 1, False = 0)",
+ options:["0 (False)","1 (True)"], correct:0},
+{q:"Extendible hashing is used to organize a file of data records; bucket size = 2 records; initial global depth = 0. A sequence of 11 records is inserted, producing hash values 0,1,2,...,9,10 in that order. The number of data buckets in use after all records are inserted is:",
+ options:["11","8","7","6"], correct:2},
+{q:"Same extendible hashing scenario. S1: The global depth value is 3. S2: The local depth values of all the data buckets except one are the same. Choose the correct option:",
+ options:["S1: False, S2: False","S1: False, S2: True","S1: True, S2: False","S1: True, S2: True"], correct:3},
+{q:"Consider a B+ tree in which the maximum number of keys in an internal node is 5. What is the minimum number of keys in any non-root internal node?",
+ options:["2","1","3","4"], correct:0}
+];
+
+let current = 0;
+let score = 0;
+let answered = new Array(QUESTIONS.length).fill(false);
+let userAnswers = new Array(QUESTIONS.length).fill(-1);
+
+const letters = ['A','B','C','D'];
+const card = document.getElementById('card');
+const nextBtn = document.getElementById('nextBtn');
+const progressLabel = document.getElementById('progressLabel');
+const progressFill = document.getElementById('progressFill');
+const scoreTag = document.getElementById('scoreTag');
+const liveScore = document.getElementById('liveScore');
+
+function renderQuestion(){
+  const item = QUESTIONS[current];
+  progressLabel.textContent = `Question ${current+1} of ${QUESTIONS.length}`;
+  progressFill.style.width = `${(current/QUESTIONS.length)*100}%`;
+
+  let html = `<div class="q-number">Q${current+1}</div>`;
+  html += `<p class="q-text">${item.q}</p>`;
+  html += `<div class="options" id="optionsWrap">`;
+  item.options.forEach((opt,i)=>{
+    html += `<div class="option" data-idx="${i}"><span class="letter">${letters[i]}</span><span>${opt}</span></div>`;
+  });
+  html += `</div><div id="feedbackWrap"></div>`;
+  card.innerHTML = html;
+
+  nextBtn.disabled = true;
+  nextBtn.textContent = current === QUESTIONS.length-1 ? 'Finish →' : 'Next →';
+
+  const already = answered[current];
+  document.querySelectorAll('.option').forEach(el=>{
+    el.addEventListener('click', ()=>selectOption(el));
+  });
+
+  if(already){
+    lockOptions(userAnswers[current]);
+  }
+
+  updateScoreTags();
+}
+
+function selectOption(el){
+  if(answered[current]) return;
+  const idx = parseInt(el.dataset.idx);
+  const item = QUESTIONS[current];
+  answered[current] = true;
+  userAnswers[current] = idx;
+  if(idx === item.correct) score++;
+  lockOptions(idx);
+  updateScoreTags();
+  nextBtn.disabled = false;
+}
+
+function lockOptions(chosenIdx){
+  const item = QUESTIONS[current];
+  document.querySelectorAll('.option').forEach(el=>{
+    const idx = parseInt(el.dataset.idx);
+    el.classList.remove('selected');
+    if(idx === item.correct){
+      el.classList.add('correct');
+    } else if(idx === chosenIdx){
+      el.classList.add('incorrect');
+    }
+  });
+  const fb = document.getElementById('feedbackWrap');
+  const isCorrect = chosenIdx === item.correct;
+  fb.innerHTML = `<div class="feedback ${isCorrect?'good':'bad'}">${isCorrect ? '✓ Correct — +1 mark' : '✗ Incorrect — 0 marks. Correct answer: '+letters[item.correct]}</div>`;
+  nextBtn.disabled = false;
+}
+
+function updateScoreTags(){
+  const answeredCount = answered.filter(Boolean).length;
+  scoreTag.textContent = `Score ${score} / ${QUESTIONS.length}`;
+  liveScore.textContent = `${answeredCount} answered · ${score} correct so far`;
+}
+
+nextBtn.addEventListener('click', ()=>{
+  if(current < QUESTIONS.length-1){
+    current++;
+    renderQuestion();
+    window.scrollTo({top:0,behavior:'smooth'});
+  } else {
+    showResults();
+  }
+});
+
+function showResults(){
+  document.getElementById('quizArea').style.display = 'none';
+  const area = document.getElementById('resultsArea');
+  area.style.display = 'block';
+  const pct = Math.round((score/QUESTIONS.length)*100);
+  let msg = "Solid work.";
+  if(pct >= 90) msg = "Outstanding — near-mastery of the material.";
+  else if(pct >= 75) msg = "Strong performance — a few gaps to review below.";
+  else if(pct >= 50) msg = "Decent grasp — worth revisiting the misses below.";
+  else msg = "Time to go back over the fundamentals — review the misses below.";
+
+  let reviewHtml = '<div class="review-list">';
+  QUESTIONS.forEach((item,i)=>{
+    const correct = userAnswers[i] === item.correct;
+    reviewHtml += `<div class="review-item">
+      <span><span class="rq">Q${i+1}</span> ${correct ? '<span class="tick">✓</span>' : '<span class="cross">✗</span>'} ${item.q.length>90?item.q.slice(0,90)+'…':item.q}</span>
+    </div>`;
+  });
+  reviewHtml += '</div>';
+
+  area.innerHTML = `
+    <div class="card results">
+      <div class="q-number">Final Result</div>
+      <div class="big-score">${score} / ${QUESTIONS.length}</div>
+      <div class="out-of">marks scored (+1 correct, 0 wrong)</div>
+      <div class="pct">${pct}%</div>
+      <p class="msg">${msg}</p>
+      <div class="btn-row">
+        <button class="btn-primary" onclick="location.reload()">Retake Quiz</button>
+      </div>
+      ${reviewHtml}
+    </div>
+  `;
+}
+
+renderQuestion();
+</script>
+</body>
+</html>
