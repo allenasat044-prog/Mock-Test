@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>DBMS Mock Quiz</title>
+<style>
+  :root{
+    --bg:#0f1117;
+    --card:#171a23;
+    --border:#2a2e3a;
+    --text:#e8eaf0;
+    --muted:#9099ab;
+    --accent:#6c8cff;
+    --correct:#2ecc71;
+    --wrong:#ff5c5c;
+    --correct-bg:rgba(46,204,113,0.12);
+    --wrong-bg:rgba(255,92,92,0.12);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    padding:24px 12px 60px;
+  }
+  .wrap{max-width:760px;margin:0 auto;}
+  h1{font-size:22px;margin:0 0 4px;}
+  .sub{color:var(--muted);font-size:14px;margin-bottom:20px;}
+  #progressBar{
+    position:sticky;top:0;background:var(--bg);padding:10px 0 14px;z-index:10;
+  }
+  #progressBar .track{height:6px;background:var(--border);border-radius:4px;overflow:hidden;}
+  #progressBar .fill{height:100%;background:var(--accent);width:0%;transition:width .2s;}
+  #progressBar .label{font-size:12px;color:var(--muted);margin-top:6px;display:flex;justify-content:space-between;}
+  .qcard{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:18px 18px 14px;
+    margin-bottom:14px;
+  }
+  .qhead{display:flex;gap:8px;font-size:15px;line-height:1.45;margin-bottom:12px;}
+  .qnum{color:var(--accent);font-weight:600;white-space:nowrap;}
+  .opt{
+    display:flex;align-items:flex-start;gap:10px;
+    padding:10px 12px;border-radius:8px;border:1px solid var(--border);
+    margin-bottom:8px;cursor:pointer;font-size:14px;line-height:1.4;
+    background:#1d2130;
+    transition:background .15s, border-color .15s;
+  }
+  .opt:hover{border-color:var(--accent);}
+  .opt input{margin-top:3px;accent-color:var(--accent);flex-shrink:0;}
+  .opt.selected{border-color:var(--accent);background:rgba(108,140,255,0.1);}
+  .opt.correct{border-color:var(--correct);background:var(--correct-bg);}
+  .opt.wrong{border-color:var(--wrong);background:var(--wrong-bg);}
+  .tag{font-size:11px;padding:1px 8px;border-radius:20px;margin-left:6px;font-weight:600;}
+  .tag.correct{background:var(--correct);color:#04160c;}
+  .tag.wrong{background:var(--wrong);color:#210505;}
+  code, .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+  #controls{
+    position:sticky;bottom:0;background:linear-gradient(to top, var(--bg) 70%, transparent);
+    padding:16px 0 4px;display:flex;gap:10px;justify-content:center;
+  }
+  button{
+    background:var(--accent);color:#0b0d13;border:none;border-radius:10px;
+    padding:12px 22px;font-size:15px;font-weight:600;cursor:pointer;
+  }
+  button.secondary{background:#2a2e3a;color:var(--text);}
+  button:disabled{opacity:0.5;cursor:not-allowed;}
+  #resultCard{
+    background:var(--card);border:1px solid var(--border);border-radius:14px;
+    padding:24px;text-align:center;margin-bottom:20px;
+  }
+  #resultCard .score{font-size:42px;font-weight:800;color:var(--accent);}
+  #resultCard .pct{color:var(--muted);font-size:14px;margin-top:4px;}
+  .hidden{display:none !important;}
+  #jumpBar{font-size:12px;color:var(--muted);text-align:center;margin:6px 0 18px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>DBMS Mock Quiz</h1>
+  <div class="sub">70 questions · +1 for correct, 0 for wrong · Answer all, then submit to see your score</div>
+
+  <div id="progressBar">
+    <div class="track"><div class="fill" id="fillBar"></div></div>
+    <div class="label"><span id="answeredCount">0 / 70 answered</span><span id="liveScore"></span></div>
+  </div>
+
+  <div id="resultCard" class="hidden">
+    <div class="score" id="scoreText">0 / 70</div>
+    <div class="pct" id="pctText"></div>
+  </div>
+
+  <div id="quizContainer"></div>
+
+  <div id="controls">
+    <button class="secondary" id="resetBtn">Reset</button>
+    <button id="submitBtn">Submit Quiz</button>
+  </div>
+</div>
+
+<script>
+const questions = [
+// ---- Set A (mock_test.pdf), Q1-Q40 ----
+{q:"A relationship WORKS_FOR exists between EMPLOYEE and DEPARTMENT. If every employee must work for exactly one department, while a department may have zero or more employees, the cardinality and participation are:",
+ o:["1:1, total participation of both entities","1:N, total participation of EMPLOYEE and partial participation of DEPARTMENT","N:M, partial participation of both entities","N:1, total participation of DEPARTMENT and partial participation of EMPLOYEE","N:0, partial participation of both entities"], c:1},
+{q:"A relationship SUPERVISES connects an EMPLOYEE entity set to itself. This is an example of:",
+ o:["Binary relationship","Ternary relationship","Recursive relationship","Weak relationship","Identifying relationship"], c:2},
+{q:"Consider the relationship STUDENT–ENROLLS–COURSE. If a student can enroll in multiple courses and a course can have multiple students, the relationship is:",
+ o:["One-to-one","One-to-many","Many-to-one","Many-to-many","Recursive"], c:3},
+{q:"Consider the following relations: STUDENT(SID, Name, Dept) ENROLLMENT(SID, CID, Grade). Which constraint ensures that every value of ENROLLMENT.SID refers to an existing student?",
+ o:["Domain constraint","Key constraint","Entity integrity constraint","Referential integrity constraint","Functional dependency constraint"], c:3},
+{q:"Consider the relations: R(A, B) = {(1, 2), (2, 3)}  S(B, C) = {(2, 4), (3, 5)}. What is the result of natural join on the common attribute B?",
+ o:["{(1,2),(2,3)}","{(2,4),(3,5)}","{(1,2,4),(2,3,5)}","{(1,2,4),(2,3,5),(2,4,3)}","Empty relation"], c:2},
+{q:"Let R(A,B,C) and S(B,D) be two relations. Which relational algebra operation produces all combinations of tuples from R and S?",
+ o:["Union","Natural Join","Cartesian Product","Intersection","Difference"], c:2},
+{q:"Consider the TRC query: {t | t∈STUDENT ∧ t.Dept='CSE'} This query retrieves:",
+ o:["All students whose department is not CSE","All attributes of students belonging to CSE","Only the department names of CSE students","All courses offered by the CSE department","All students enrolled in every CSE course"], c:1},
+{q:"Consider the following TRC query: {e | e∈EMPLOYEE ∧ ∃d(d∈DEPARTMENT ∧ d.DID=e.DID ∧ d.Name='Sales')} The query returns:",
+ o:["Departments that have no employees","Employees working in the Sales department","All employees except those in Sales","Employees who manage the Sales department"], c:1},
+{q:"Consider the query: SELECT Dept, AVG(Salary) FROM EMPLOYEE WHERE Salary > 30000 GROUP BY Dept; The WHERE clause is applied:",
+ o:["After grouping and aggregation","Before grouping and aggregation","Only after the HAVING clause","After the result is sorted","Only to grouped results"], c:1},
+{q:"Consider the query: SELECT E.Name FROM EMPLOYEE E WHERE E.Salary > (SELECT AVG(Salary) FROM EMPLOYEE); This query retrieves:",
+ o:["Employees whose salary is equal to the average salary","Employees whose salary is greater than the average salary of all employees","Employees with the maximum salary only","Employees whose salary is less than the average salary","The average salary of each employee"], c:1},
+{q:"Consider the relations: EMPLOYEE(EID, Name, DID) DEPARTMENT(DID, DName). Which SQL query correctly retrieves employee names along with their department names?",
+ o:["SELECT E.Name, D.DName FROM EMPLOYEE E, DEPARTMENT D WHERE E.DID = D.DID;","SELECT E.Name, D.DName FROM EMPLOYEE E WHERE E.DID = D.DID;","SELECT E.Name, D.DName FROM EMPLOYEE E JOIN DEPARTMENT D;","SELECT E.Name, D.DName FROM EMPLOYEE E WHERE E.DID <> D.DID;","SELECT E.Name, D.DName FROM EMPLOYEE E UNION DEPARTMENT D;"], c:0},
+{q:"Which of the following SQL statements correctly inserts a new tuple into a relation?",
+ o:["ADD INTO STUDENT VALUES (...);","INSERT STUDENT VALUES (...);","INSERT INTO STUDENT VALUES (...);","CREATE INTO STUDENT VALUES (...);","UPDATE INTO STUDENT VALUES (...);"], c:2},
+{q:"Consider the relationship WORKS_FOR between EMPLOYEE and DEPARTMENT. If every employee must work for exactly one department, while a department may have zero or more employees, the participation constraints are:",
+ o:["Total participation of both EMPLOYEE and DEPARTMENT","Partial participation of both EMPLOYEE and DEPARTMENT","Total participation of EMPLOYEE and partial participation of DEPARTMENT","Partial participation of EMPLOYEE and total participation of DEPARTMENT","Total participation of EMPLOYEE with a one-to-one relationship"], c:2},
+{q:"Suppose an entity EMPLOYEE has a composite attribute ADDRESS, consisting of Street, City, and PIN. The attribute ADDRESS is:",
+ o:["A multivalued attribute","A derived attribute","A composite attribute","A key attribute","A partial key"], c:2},
+{q:"Consider the expression: π(Name,Dept) (σ(Salary>50000) (EMPLOYEE)). The operation first:",
+ o:["Projects Name and Dept, then selects Salary > 50000","Selects employees with Salary > 50000, then projects Name and Dept","Joins Name and Dept with Salary","Removes duplicate employees only","Performs a Cartesian product"], c:1},
+{q:'Given the relational schema Employee(EmpID, EmpName, Salary, Age, Address, Department, HireDate), which TRC query retrieves employee id where the salary is greater than ₹60,000, the age is less than 40, the department is either "IT" or "Marketing", and the hire date is after January 1st, 2020?',
+ o:['{ t.EmpID | Employee(t) ∧ t.Salary > 60000 ∧ t.Age < 40 ∧ (t.Department = "IT" ∨ t.Department = "Marketing") ∧ t.HireDate > \'01/01/2020\'}',
+    '{ t.EmpID | Employee(t) ∧ t.Salary > 60000 ∨ t.Age < 40 ∨ (t.Department = "IT" ∧ t.Department = "Marketing") ∨ t.HireDate > \'01/01/2020\'}',
+    '{ t.EmpID | Employee(t) ∧ (t.Salary > 60000 ∧ t.Age < 40) ∨ (t.Department = "IT" ∧ t.Department = "Marketing") ∧ t.HireDate > \'01/01/2020\'}',
+    '{ t.EmpID | Employee(t) ∧ (t.Salary > 60000 ∨ t.Age < 40) ∧ (t.Department = "IT" ∨ t.Department = "Marketing") ∧ t.HireDate > \'01/01/2020\'}'], c:0},
+{q:"Consider the following two statements and choose the correct option: S1: Each record of the referencing relation can relate to at most one record of the referenced relation. S2: Each record of the referenced relation can relate to at most one record of the referencing relation.",
+ o:["S1 is true, S2 is true","S1 is false, S2 is true","S1 is false, S2 is false","S1 is true, S2 is false"], c:3},
+{q:"Which of the following statements is TRUE?",
+ o:["A key for a relation can be figured out just by looking at the instance data.","A relation has exactly one key.","It is possible that a relation has no key.","A key for a relation can only be determined from the meaning of its attributes."], c:3},
+{q:"If X, Y and Z are as specified below, which of the following statements is TRUE wrt different keys of a relational DB? X = set of all primary keys, Y = set of all candidate keys, Z = set of all super keys",
+ o:["X⊆Z⊆Y","Z⊆X⊆Y","X⊆Y⊆Z","Y⊆X⊆Z"], c:2},
+{q:"Consider the following query to retrieve the most senior professor (determined based on startYear): SELECT p1.name FROM professor p1 WHERE p1.startYear ---- (SELECT p2.startYear FROM professor p2) Which of the following options is the correct filler for the blank, where relation is professor(empId, name, sex, startYear, deptNo, phone)?",
+ o:["< ALL","<= ALL","<= ANY","IN"], c:1},
+{q:"SELECT rollNo as identifier FROM student UNION SELECT empId as identifier FROM professor. Which of the following statements is correct regarding the above query?",
+ o:["The query executes only if rollNo of student and empId of professor have same data types","The query executes in all cases (irrespective of the data types of rollNo and empId)","The query does not execute at all","None of the above"], c:0},
+{q:"Consider two instances of the relations R1(A, B) and R2 (C, D) with the number of rows 10 and 8, respectively. What is the least possible number of tuples in the result of the following query? SELECT * FROM R1 FULL OUTER JOIN R2 ON R1.A = R2.C",
+ o:["0","18","8","10"], c:3},
+{q:"Which of the following queries would select the courses with at least 10 'Z' grades in some offering of the course?",
+ o:["SELECT courseId FROM enrollment WHERE grade = 'Z' GROUP BY courseId HAVING count(rollNo) >= 10","SELECT courseId FROM enrollment WHERE grade = 'Z' GROUP BY courseId, sem, year HAVING count(rollNo) >= 10","SELECT courseId FROM enrollment WHERE grade = 'Z' AND count(rollNo) >= 10 GROUP BY courseId","SELECT courseId FROM enrollment WHERE grade = 'Z' AND count(rollNo) >= 10 GROUP BY courseId, sem, year"], c:1},
+{q:"Which one of the following queries would find the teacher(s) who taught CS1100 the highest number of times?",
+ o:["CREATE VIEW EmpCount AS SELECT empId, count(*) AS cnt FROM teaching WHERE courseId='CS1100' GROUP BY empId; SELECT empId FROM EmpCount WHERE cnt = (SELECT MAX(cnt) from EmpCount)",
+    "CREATE VIEW EmpCount AS SELECT empId, count(*) AS cnt FROM teaching WHERE courseId='CS1100' GROUP BY empId; SELECT empId FROM EmpCount WHERE cnt = (SELECT MAX(cnt) from EmpCount) [malformed variant]",
+    "SELECT empId, max(count(*)) AS cnt FROM teaching WHERE courseId = 'CS1100' GROUP BY empId",
+    "SELECT empId FROM teaching WHERE courseId = 'CS1100' GROUP BY empId HAVING COUNT(*) = ( SELECT max(count(*)) FROM teaching WHERE courseId = 'CS1100' )"], c:0},
+{q:"In which of the following SQL clauses of a main query can a sub-query be made use of? (i) FROM (ii) WHERE (iii) HAVING",
+ o:["only (ii)","only (iii)","only (ii) and (iii)","all (i), (ii) and (iii)"], c:3},
+{q:"Consider a relation R(A, B, C, D, E, F) and the given FDs {AB → C, C → D, B → E, DE → F, F → AB}. Choose the incorrect option:",
+ o:["AB is a candidate key of R","F is a candidate key of R","BC is a candidate key of R","CD is a candidate key of R"], c:3},
+{q:"Consider a relation R(A, B, C, D, E, F, G) and the FD set F= {B → ACD, DE → F, F → D, E → FGB, BCG → CE, EG → CD}. Let F' be a minimal cover of F. Find out the incorrect statement about F':",
+ o:["F' contains F → D","F' does not contain DE → F","F' does not contain EG → CD","F' does not contain BG → E"], c:3},
+{q:"A file is stored on a disk in 2048 blocks. For this file, we need to perform external sorting in the main memory with buffer size equal to 9 blocks. The number of block accesses during sort phase is",
+ o:["18","228","2048","4096"], c:3},
+{q:"A file is stored on a disk in 2048 blocks. For this file, we need to perform external sorting in the main memory with buffer size equal to 9 blocks. The number of block accesses during merge phase is",
+ o:["228","8192","12288","16384"], c:2},
+{q:"Which of the following SQL operators isn't commutative?",
+ o:["inner join","full outer join","left outer join","intersect"], c:2},
+{q:"Consider relation R(A,B,C,D) with FDs {A→B, B→C, C→D}. Which is a candidate key?",
+ o:["A","B","C","D","AB"], c:0},
+{q:"Which normal form removes partial dependency on a composite key?",
+ o:["1NF","2NF","3NF","BCNF","4NF"], c:1},
+{q:"Which JOIN returns all rows from both tables, matching where possible and filling NULLs otherwise?",
+ o:["INNER JOIN","LEFT OUTER JOIN","RIGHT OUTER JOIN","FULL OUTER JOIN","CROSS JOIN"], c:3},
+{q:"If R has 100 tuples and S has 50 tuples, the maximum tuples in R × S are:",
+ o:["100","150","500","5000"], c:3},
+{q:"Which SQL clause is evaluated immediately after GROUP BY?",
+ o:["WHERE","HAVING","FROM","ORDER BY","SELECT"], c:1},
+{q:"A weak entity is uniquely identified using:",
+ o:["Primary Key","Foreign Key","Partial Key with Identifying Relationship","Candidate Key","Composite Attribute"], c:2},
+{q:"Which relational algebra operator is equivalent to SQL SELECT DISTINCT?",
+ o:["Selection (σ)","Projection (π)","Join (⋈)","Difference (−)","Union (∪)"], c:1},
+{q:"Which ACID property ensures committed changes survive system failures?",
+ o:["Atomicity","Consistency","Isolation","Durability","Recoverability"], c:3},
+{q:"Which concurrency problem occurs when one transaction overwrites another transaction's update?",
+ o:["Dirty Read","Lost Update","Phantom Read","Non-repeatable Read","Deadlock"], c:1},
+{q:"Given FDs {A→B, B→C, C→A}, which attribute set is a candidate key?",
+ o:["A","B","C","All of the above","ABC"], c:3},
+
+// ---- Set B (test_2.pdf), Q1-Q30 ----
+{q:"Which SQL statement correctly displays the names of students whose marks are greater than every student in the Mechanical department?",
+ o:["SELECT Name FROM Student WHERE Marks > ALL (SELECT Marks FROM Student WHERE Dept='Mechanical');","SELECT Name FROM Student WHERE Marks > ANY (SELECT Marks FROM Student WHERE Dept='Mechanical');","SELECT Name FROM Student WHERE Marks = ALL (SELECT Marks FROM Student WHERE Dept='Mechanical');","SELECT Name FROM Student WHERE Marks < ANY (SELECT Marks FROM Student WHERE Dept='Mechanical');"], c:0},
+{q:"Which of the following SQL clauses is evaluated first in the query: SELECT Name FROM Student WHERE Marks > (SELECT AVG(Marks) FROM Student);?",
+ o:["The outer SELECT statement","The WHERE clause of the outer query","The subquery that computes the average marks","The projection of Name"], c:2},
+{q:"Consider the Employee(EmpID, Name, Salary, DeptID) table. Which SQL query returns the average salary of employees in each department?",
+ o:["SELECT AVG(Salary) FROM Employee;","SELECT DeptID, AVG(Salary) FROM Employee GROUP BY DeptID;","SELECT DeptID, Salary FROM Employee GROUP BY Salary;","SELECT DeptID FROM Employee HAVING AVG(Salary);"], c:1},
+{q:"Which SQL query returns only those departments having more than 10 employees?",
+ o:["SELECT DeptID FROM Employee WHERE COUNT(*) > 10;","SELECT DeptID FROM Employee GROUP BY DeptID HAVING COUNT(*) > 10;","SELECT DeptID FROM Employee ORDER BY COUNT(*);","SELECT COUNT(*) FROM Employee WHERE DeptID > 10;"], c:1},
+{q:"Consider the query: SELECT COUNT(DISTINCT DeptID) FROM Employee;. What does the query return?",
+ o:["Total number of employees","Number of unique departments having employees","Number of departments in the Department table","Number of employees in each department"], c:1},
+{q:"A view is created using: CREATE VIEW CSE_Students AS SELECT * FROM Student WHERE Dept='CSE'; If a new CSE student is inserted into the Student table, what happens to the view?",
+ o:["The view automatically reflects the new student.","The view must be recreated manually.","The view is deleted automatically.","The view becomes read-only."], c:0},
+{q:"Which of the following is the primary advantage of using SQL views?",
+ o:["They reduce the physical size of the database.","They improve data security by restricting access to selected data.","They automatically normalize the database.","They eliminate duplicate records from tables."], c:1},
+{q:"Consider the SQL statement: CREATE VIEW HighSalary AS SELECT EmpID, Name FROM Employee WHERE Salary > 80000;. Which statement is TRUE?",
+ o:["HighSalary stores a copy of the selected rows.","HighSalary stores only the SQL query definition.","HighSalary cannot be queried.","HighSalary deletes rows with salary less than 80000."], c:1},
+{q:"Which of the following best describes Dynamic SQL?",
+ o:["SQL statements that are fixed at compile time.","SQL statements constructed and executed during program execution.","SQL statements that cannot contain variables.","SQL statements used only for creating tables."], c:1},
+{q:"Which API is commonly used by Java applications to connect and execute SQL statements on a relational database?",
+ o:["JDBC","HTML","XML","CSS"], c:0},
+{q:"Why are Prepared Statements preferred over dynamically concatenated SQL queries in application programs?",
+ o:["They consume more memory.","They improve security by preventing SQL injection attacks.","They automatically create indexes.","They eliminate the need for database connections."], c:1},
+{q:"An application constructs the SQL statement 'SELECT * FROM Student WHERE Dept = ?' and supplies the department name at runtime. This is an example of:",
+ o:["Static SQL","Dynamic SQL using parameterized queries","DDL","View definition"], c:1},
+{q:"Consider the relations Employee(EmpID, Name, DeptID) and Department(DeptID, DeptName). The Employee relation contains tuples (E1, Amit, D1), (E2, Ravi, D2), and (E3, John, NULL). The Department relation contains tuples (D1, CSE) and (D2, ECE). How many tuples will be returned by the SQL query: Employee LEFT OUTER JOIN Department ON Employee.DeptID = Department.DeptID?",
+ o:["2","3","4","5"], c:1},
+{q:"Consider the relations Student(StudentID, Name, DeptID) and Department(DeptID, DeptName). Which relational algebra expression retrieves the names of students belonging to the CSE department?",
+ o:["πName(σDeptName='CSE'(Student ⋈ Department))","σName(πDeptName='CSE'(Student))","Student × Department","πDeptName(Student)"], c:0},
+{q:"An ER model contains two entities: Employee(EmpID, Name) and Project(ProjectID, Title), connected by a many-to-many relationship Works_On with attribute Hours. Which relational schema correctly represents this relationship after conversion to the relational model?",
+ o:["Employee(EmpID, Name, ProjectID) and Project(ProjectID, Title)","Employee(EmpID, Name) and Project(ProjectID, Title, EmpID)","Employee(EmpID, Name), Project(ProjectID, Title), Works_On(EmpID, ProjectID, Hours)","Works_On(EmpID, Hours)"], c:2},
+{q:"A weak entity Dependent(Name, Age) depends on Employee(EmpID). Which of the following correctly identifies the primary key of the Dependent relation after ER-to-relational conversion?",
+ o:["Name","EmpID","(EmpID, Name)","Age"], c:2},
+{q:"Consider the Tuple Relational Calculus (TRC) expression: { t.Name | Student(t) AND t.Marks > 80 }. What does this expression return?",
+ o:["Names of students scoring more than 80 marks","Complete Student tuples with marks greater than 80","Roll numbers of students scoring more than 80","Names of all students"], c:0},
+{q:"Consider the TRC expression: { t.Name | Student(t) AND t.Dept = 'CSE' AND t.CGPA > 8.5 }. What information is returned by this query?",
+ o:["Complete tuples of all students","Names of CSE students having CGPA greater than 8.5","Names of all students having CGPA greater than 8.5","Departments of students having CGPA greater than 8.5"], c:1},
+{q:"Consider the relation Student(StudentID, Name, DeptID) and Department(DeptID, DeptName). Which join operation returns only those students whose DeptID matches a department in the Department relation?",
+ o:["LEFT OUTER JOIN","RIGHT OUTER JOIN","FULL OUTER JOIN","INNER JOIN"], c:3},
+{q:"An ER model contains the entity Student(StudentID, Name) with a multivalued attribute PhoneNumber. After converting the ER model into the relational model, how should PhoneNumber be represented?",
+ o:["As another column in the Student table","As a separate relation StudentPhone(StudentID, PhoneNumber)","As a foreign key in Student","It should be ignored during conversion"], c:1},
+{q:"Which of the following Tuple Relational Calculus (TRC) expressions is unsafe?",
+ o:["{ t | Student(t) }","{ t.Name | Student(t) AND t.CGPA > 8.0 }","{ t | t.Age > 18 }","{ t.StudentID | Student(t) }"], c:2},
+{q:"Consider the relations Student(StudentID, Name, DeptID) and Department(DeptID, DeptName). Which relational algebra expression correctly retrieves the names of students who belong to the 'CSE' department?",
+ o:["πName(σDeptName='CSE'(Student ⋈ Department))","σDeptName='CSE'(πName(Student))","πDeptName(Student)","Student ∪ Department"], c:0},
+{q:"Consider the SQL statement: CREATE TABLE Student(StudentID INT PRIMARY KEY, Name VARCHAR(30), DeptID INT REFERENCES Department(DeptID)); Which constraint ensures that every DeptID entered in the Student table already exists in the Department table?",
+ o:["Domain Constraint","Entity Integrity Constraint","Referential Integrity Constraint","NOT NULL Constraint"], c:2},
+{q:"Which SQL statement should be used to add a new column Email of type VARCHAR(50) to an existing Student table without affecting the existing data?",
+ o:["UPDATE Student ADD Email VARCHAR(50)","ALTER TABLE Student ADD Email VARCHAR(50)","MODIFY TABLE Student ADD Email VARCHAR(50)","CREATE TABLE Student ADD Email VARCHAR(50)"], c:1},
+{q:"A Student table contains 500 records. Which SQL statement removes all rows from the table while keeping the table structure available for future use?",
+ o:["DROP TABLE Student","DELETE TABLE Student","TRUNCATE TABLE Student","REMOVE TABLE Student"], c:2},
+{q:"Consider the SQL query: SELECT Name FROM Student WHERE CGPA > (SELECT AVG(CGPA) FROM Student); What does this query return?",
+ o:["Names of students whose CGPA is greater than the average CGPA","Average CGPA of all students","Names of all students","Students having the highest CGPA only"], c:0},
+{q:"Which of the following SQL queries correctly displays the names of employees working in departments located in Bengaluru?",
+ o:["SELECT Name FROM Employee WHERE DeptID IN (SELECT DeptID FROM Department WHERE Location='Bengaluru');","SELECT Name FROM Department WHERE Location='Bengaluru';","SELECT DeptID FROM Employee WHERE Location='Bengaluru';","SELECT * FROM Employee GROUP BY DeptID;"], c:0},
+{q:"What will be returned by the SQL query: SELECT MAX(Salary) FROM Employee WHERE DeptID = (SELECT DeptID FROM Department WHERE DeptName='CSE'); assuming only one department is named CSE?",
+ o:["Average salary of CSE employees","Highest salary among employees in the CSE department","Salary of all employees","Number of employees in the CSE department"], c:1},
+{q:"Consider the SQL query: SELECT Name FROM Employee E WHERE Salary > (SELECT AVG(Salary) FROM Employee WHERE DeptID = E.DeptID); How many times is the inner query executed?",
+ o:["Once for the entire query","Once for each department","Once for each row processed by the outer query","Only if the outer query returns NULL"], c:2},
+{q:"Which feature distinguishes a correlated subquery from a normal subquery?",
+ o:["It always uses aggregate functions.","It returns multiple columns only.","It cannot be used with the WHERE clause.","It references columns from the outer query."], c:3},
+
+// ---- Set C (test3.pdf & test4.pdf) ----
+{q:"Consider the relation Student(RegNo, Name, Address, Phone, ClassID) with FDs: RegNo→{Name,Address}; {Address,Phone}→ClassID; Name→Phone; ClassID→RegNo. Which of the following are possible sets of candidate keys of Student?",
+ o:["{RegNo}, {Phone}","{RegNo}, {ClassID}, {Address,Phone}","{RegNo}, {ClassID}, {Phone}","{RegNo}, {Address}, {Phone}"], c:1},
+{q:"Consider the relation Weather(Country, City, DayNo, TimeHr, ProbRain, ProbWind, ProbTemp). {Country,City,DayNo} uniquely identifies {ProbRain,ProbWind,ProbTemp}. TimeHr is identified by DayNo. ProbWind is determined by {ProbRain,ProbTemp}. If Weather is normalized to 2NF, which attribute will be present in both decompositions?",
+ o:["Country","TimeHr","ProbRain","DayNo"], c:3},
+{q:"Consider ArtExhibition(academy, style, paintingsSold, NetAmount, Artist, ExhibitionLoc) with FDs: {academy,paintingsSold}→{Artist,style}; Artist→{style,ExhibitionLoc,NetAmount}; {Artist,ExhibitionLoc}→style. Which FD, if added, makes paintingsSold the only candidate key of ArtExhibition?",
+ o:["academy → paintingsSold","academy → {NetAmount,Artist}","paintingsSold → ExhibitionLoc","paintingsSold → academy"], c:3},
+{q:"Consider Construction(Company, Material, Type, Cost) with FD1: Company→Material, FD2: Material→Type, FD3: Type→Cost. It is decomposed into Construction1(Company,Type,Cost) and Construction2(Material,Type). Which of the following is true about the decomposition?",
+ o:["Both lossless and dependency preserving.","Neither lossless nor dependency preserving.","Lossless but not dependency preserving","Lossy but dependency preserving"], c:1},
+{q:"Consider NewsPaper(PaperName, ArticleNo, Reporter, Editor) with FD1: {PaperName,ArticleNo}→Reporter, FD2: {ArticleNo,Reporter}→Editor. Which of the following decompositions allow the relations to be in BCNF?",
+ o:["NewsPaper is already in BCNF","News1(Editor), News2(PaperName,ArticleNo,Reporter)","News1(ArticleNo,Reporter,Editor), News2(PaperName,ArticleNo,Reporter)","News1(ArticleNo,Editor), News2(PaperName,Reporter)"], c:2},
+{q:"A RAID-4 (block-level striping, dedicated parity disk) system has 6 data disks and 1 parity disk. If RAID-5 (distributed parity) is used instead, the number of disks on which data is stored is:",
+ o:["7","8","13","14"], c:0},
+{q:"A file is stored on disk in 2048 blocks. External sorting is performed in main memory with buffer size = 9 blocks. The number of block accesses during the sort phase is (Set C):",
+ o:["18","228","2048","4096"], c:3},
+{q:"Same file (2048 blocks, buffer size = 9 blocks). The number of block accesses during the merge phase is (Set C):",
+ o:["228","8192","12288","16384"], c:2},
+{q:"Two data files R and S with b1 and b2 blocks are stored on two disks (half the blocks on each disk) for parallel access. A nested loop join is performed with m memory buffers (m odd): 2 buffers for the inner file (one block from each disk), 1 for the result, and the rest divided equally for the outer file from both disks. The number of times all blocks of the inner file are accessed is:",
+ o:["ceil( b1 / (m − 3) )","ceil( b1 / (2 × (m − 3)) )","ceil( b1 / (4 × (m − 3)) )","ceil( b1 / (2 × (m − 2)) )"], c:0},
+{q:"A multi-level index is to be built on key field X of an unordered disk file. Number of records = 13,10,720; record length = 200 bytes; size of X = 13 bytes; size of record pointer = 7 bytes; block size = 2048 bytes (block pointer size = record pointer size). What are the blocking factors for the data file and the index file, respectively?",
+ o:["11, 101","10, 103","11, 103","10, 102"], c:3},
+{q:"Same scenario as above (multi-level index on unordered file). What are the number of blocks in the first-level and second-level index files, respectively?",
+ o:["1,31,072 , 1286","13,111 , 126","13,110 , 125","12,851 , 126"], c:3},
+{q:"A hard disk has seek time 12ms and rotational delay 3ms. The read/write head is positioned on block 0 of track 20. The maximum time taken for the head to move to block 10 on the same track is:",
+ o:["3ms","12ms","15ms","30ms"], c:0},
+{q:"A Cricket Tournament DB has: disk block size = 2 KB (whole records only), data transfer rate = 64000 bytes/sec, seek time = 24ms. Player record size = 128 bytes, disk rotates at 6000 rpm. Approximately how much time is required to know the total runs scored by a player?",
+ o:["37 ms","56 ms","61 ms","66 ms"], c:2},
+{q:"A 256-gigabyte flash storage system has a page size of 2048 bytes. The flash translation table is stored as an array and 1 gigabyte of space is required to store the table. What is the size of the address of a page?",
+ o:["64 bits","32 bits","64 Bytes","32 Bytes"], c:0},
+{q:"An airplane traffic control system tracks airplanes (id, name, model code), airplane models (code, manufacturer), and airports (code, name, city, state), with landing eligibility decided by model. What are the major entities to be modeled?",
+ o:["airport, airplane","airport, airplane, airplane model","airport, airplane, manufacturer","airplane, airplane model, airplane city"], c:1},
+{q:"L1 cache has a capacity of 64 KB, and L2 cache has a capacity of 512 KB. If the block size is 64 bytes in both caches, the number of cache blocks is:",
+ o:["L1: 1024, L2: 8192","L1: 8192, L2: 1024","L1: 1024, L2: 1024","L1: 8192, L2: 8192"], c:0},
+{q:"A first-level index occupies 1000 blocks. Each second-level index block can store 100 index entries. The number of second-level index blocks required is:",
+ o:["10","100","1000","10000"], c:0},
+{q:"A file contains 20,000 fixed-length records, each 100 bytes long. The disk block size is 1000 bytes, and records do not span blocks. The minimum number of data blocks required is:",
+ o:["2000","1000","2200","2500"], c:0},
+{q:"A primary index contains 50,000 entries. Each index entry occupies 20 bytes. The block size is 1000 bytes. How many blocks are required for the first-level index?",
+ o:["1000","500","50","2500"], c:0},
+{q:"S1: The following are all examples of trivial FDs — Uid→Uid, {DeptId,DeptName}→DeptId, {StudId,MobileNum}→MobileNum, {LoanNum,AccountNum}→{LoanNum,AccountNum}. S2: The following are all examples of non-trivial FDs — EmpId→EmpName, EmpId→EmpAddress, {StudName,StudDob,StudMobileNum}→{StudMobileNum,StudAddress}. Choose the correct option:",
+ o:["S1: True; S2: False","S1: True; S2: True","S1: False; S2: True","S1: False; S2: False"], c:1},
+{q:"If F = { EmpName → EmpExperience, {EmpPost,EmpExperience} → EmpSalary }, then F entails which of the following?",
+ o:["EmpPost → EmpSalary","EmpName → EmpSalary","{EmpPost,EmpName} → EmpSalary","EmpExperience → EmpSalary"], c:2},
+{q:"Consider a relational scheme R and a set of FDs F on it. S1: Lossless, dependency-preserving decomposition of R into 3NF relations wrt F is always possible. S2: Lossless, dependency-preserving decomposition of R into BCNF relations wrt F is always possible.",
+ o:["S1: True, S2: True","S1: True, S2: False","S1: False, S2: True","S1: False, S2: False"], c:1},
+{q:"For relation R(A,B,C,D,E,F,G,H,I), S = {AD→G, A→F, H→B, FB→D, D→C, I→AH}. Which of the following represents I⁺ (closure of I)?",
+ o:["{I,A,H}","{I,A,H,F}","{I,A,H,F,B}","{I,A,H,F,B,C,D,G}"], c:3},
+{q:"For relation R′(A,B,C,D,E,F,G,H,I), S′ = {AD→G, A→F, H→B, FB→E, D→C, I→AH}. Which of the following represents I⁺ (closure of I)?",
+ o:["{I,A,H}","{I,A,H,F,B}","{I,A,H,F,B,C,D,G}","{I,A,H,F,B,E}"], c:3},
+{q:"S1: Armstrong axioms allow us to compute all elements of F⁺ for any given F. S2: Armstrong axioms may sometimes generate an incorrect functional dependency. Choose the correct option:",
+ o:["S1 is true, S2 is true","S1 is false, S2 is true","S1 is false, S2 is false","S1 is true, S2 is false"], c:3},
+{q:"Consider relation R(A,B,C,D,E,F,G) with FDs {AB→CD, AF→D, DE→F, C→G, F→E, G→A}. Find the closure of {C,F}:",
+ o:["{C,F}","{C,F,G,E}","{C,F,G,E,A}","{C,F,G,E,A,D}"], c:3},
+{q:"Consider relation R(part_no, part_description, part_price, supplier_id, supplier_address) with FDs: part_no→part_description; supplier_id→supplier_address; {part_no,supplier_id}→part_price. Find the candidate key of relation R:",
+ o:["part_no","supplier_id","{supplier_id, part_no}","None of the above"], c:2},
+{q:"In relation Placement: JobID→Company, {Position,Company}→Salary. According to which of the following rules does {JobID,Position}→Salary hold?",
+ o:["Decomposition","Augmentation","Transitivity","Pseudo-transitivity"], c:3},
+{q:"Consider two instances of relations R1(A,B) and R2(C,D) with 10 and 8 rows, respectively. What is the least possible number of tuples in the result of: SELECT * FROM R1 FULL OUTER JOIN R2 ON R1.A = R2.C ?",
+ o:["0","18","8","10"], c:3},
+{q:"Consider relation R(A,B,C,D) with FDs {A→B, B→C, C→D}. Which is a candidate key? (Set C)",
+ o:["A","B","C","D"], c:0},
+{q:"Given FDs {A→B, B→C, C→A}, which attribute set is a candidate key? (Set C)",
+ o:["A","B","C","All of the above"], c:3},
+{q:"Consider two files R and S with b1 and b2 blocks, too large to fit in main memory. The equi-join R⋈R.A=S.B S is performed using the partition-hash join method with M blocks of memory available for the partition phase. The number of block accesses in the partition phase is:",
+ o:["2 (b1 + b2 + M)","b1 + b2 + 2M","2 (b1 + b2)","b1 + b2"], c:2},
+{q:"Same partition-hash join scenario: the partitions of R and S are stored in 10000 and 1000 blocks, respectively. To compute the join result of a particular partition file of R, the number of blocks of S accessed in the probe phase is (ignoring write cost):",
+ o:["2000 × b2","1000 × b2","11000","1000"], c:3},
+{q:"Two files R and S have 9000 and 1000 blocks respectively; R is already sorted on A. The equi-join R.A=S.B is performed using sort-merge join. Main memory can fit 11 blocks as buffer space for external sorting. The number of block accesses required to perform the join (excluding cost of writing results) is:",
+ o:["16000","64000","18000","10000"], c:0},
+{q:"Acyclicity of the precedence graph of a schedule gives only a necessary condition, but not a sufficient condition, to test conflict serializability. (True = 1, False = 0)",
+ o:["0 (False)","1 (True)"], c:0},
+{q:"There exists a schedule that is view serializable but not conflict serializable. (True = 1, False = 0)",
+ o:["1 (True)","0 (False)"], c:0},
+{q:"A sequence of log records written by transactions T and U are found on the log upon system restart after a crash. Assuming the recovery manager uses the UNDO logging method, the value of B on disk immediately after restart, but before the recovery manager is activated, is:",
+ o:["10","can not be determined","40","20"], c:1},
+{q:"In a database system, it's estimated that, on average, the number of committed transactions is almost 5 times the number of uncommitted transactions in the log at restart after a crash. In which logging mechanism does the recovery manager attend to the least number of transactions after being given control?",
+ o:["Any of the Above","UNDO","UNDO-REDO","REDO"], c:1},
+{q:"Match: {1: UNDO; 2: REDO; 3: UNDO-REDO} with {p: Ignore committed transactions; q: Consider committed transactions; r: Ignore committed and incomplete transactions; s: Consider committed and incomplete transactions; t: Write ahead log}. Identify the correct matching:",
+ o:["1--p; 2--q; 3--r","1--p; 2--t; 3--s","1--p; 2--q; 3--t","1--t; 2--q; 3--s"], c:1},
+{q:"If all transactions follow the 2PL protocol, the transaction that issues the first lock request in the schedule must also issue the first unlock request. (True = 1, False = 0)",
+ o:["0 (False)","1 (True)"], c:0},
+{q:"Extendible hashing is used to organize a file of data records; bucket size = 2 records; initial global depth = 0. A sequence of 11 records is inserted, producing hash values 0,1,2,...,9,10 in that order. The number of data buckets in use after all records are inserted is:",
+ o:["11","8","7","6"], c:2},
+{q:"Same extendible hashing scenario. S1: The global depth value is 3. S2: The local depth values of all the data buckets except one are the same. Choose the correct option:",
+ o:["S1: False, S2: False","S1: False, S2: True","S1: True, S2: False","S1: True, S2: True"], c:3},
+{q:"Consider a B+ tree in which the maximum number of keys in an internal node is 5. What is the minimum number of keys in any non-root internal node?",
+ o:["2","1","3","4"], c:0},
+];
+
+let answers = new Array(questions.length).fill(null);
+let submitted = false;
+const container = document.getElementById('quizContainer');
+const letters = ['A','B','C','D','E'];
+
+function render(){
+  container.innerHTML = '';
+  questions.forEach((qu, qi) => {
+    const card = document.createElement('div');
+    card.className = 'qcard';
+    const head = document.createElement('div');
+    head.className = 'qhead';
+    head.innerHTML = `<span class="qnum">Q${qi+1}.</span><span>${qu.q}</span>`;
+    card.appendChild(head);
+    qu.o.forEach((opt, oi) => {
+      const label = document.createElement('label');
+      label.className = 'opt';
+      label.dataset.qi = qi;
+      label.dataset.oi = oi;
+      label.innerHTML = `<input type="radio" name="q${qi}" value="${oi}"><span class="mono" style="white-space:pre-wrap">${opt}</span>`;
+      label.addEventListener('click', () => {
+        if(submitted) return;
+        answers[qi] = oi;
+        updateSelectionUI(qi);
+        updateProgress();
+      });
+      card.appendChild(label);
+    });
+    container.appendChild(card);
+  });
+}
+
+function updateSelectionUI(qi){
+  document.querySelectorAll(`.opt[data-qi="${qi}"]`).forEach(el=>{
+    const oi = parseInt(el.dataset.oi);
+    el.classList.toggle('selected', answers[qi]===oi);
+    el.querySelector('input').checked = answers[qi]===oi;
+  });
+}
+
+function updateProgress(){
+  const answered = answers.filter(a=>a!==null).length;
+  document.getElementById('answeredCount').textContent = `${answered} / ${questions.length} answered`;
+  document.getElementById('fillBar').style.width = (answered/questions.length*100)+'%';
+}
+
+function submitQuiz(){
+  submitted = true;
+  let score = 0;
+  questions.forEach((qu, qi) => {
+    const isCorrect = answers[qi] === qu.c;
+    if(isCorrect) score++;
+    document.querySelectorAll(`.opt[data-qi="${qi}"]`).forEach(el=>{
+      const oi = parseInt(el.dataset.oi);
+      el.style.pointerEvents = 'none';
+      if(oi === qu.c){
+        el.classList.add('correct');
+        el.insertAdjacentHTML('beforeend', '<span class="tag correct">Correct</span>');
+      } else if(oi === answers[qi] && oi !== qu.c){
+        el.classList.add('wrong');
+        el.insertAdjacentHTML('beforeend', '<span class="tag wrong">Your answer</span>');
+      }
+    });
+  });
+  document.getElementById('resultCard').classList.remove('hidden');
+  document.getElementById('scoreText').textContent = `${score} / ${questions.length}`;
+  document.getElementById('pctText').textContent = `${(score/questions.length*100).toFixed(1)}% score`;
+  document.getElementById('liveScore').textContent = `Score: ${score}/${questions.length}`;
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('resultCard').scrollIntoView({behavior:'smooth'});
+}
+
+function resetQuiz(){
+  submitted = false;
+  answers = new Array(questions.length).fill(null);
+  document.getElementById('resultCard').classList.add('hidden');
+  document.getElementById('submitBtn').disabled = false;
+  document.getElementById('liveScore').textContent = '';
+  render();
+  updateProgress();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+document.getElementById('submitBtn').addEventListener('click', submitQuiz);
+document.getElementById('resetBtn').addEventListener('click', resetQuiz);
+
+render();
+updateProgress();
+</script>
+</body>
+</html>
